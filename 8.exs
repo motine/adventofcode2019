@@ -44,13 +44,10 @@ layer_width = 25
 layer_height = 6
 layer_size = layer_width * layer_height
 
-source = File.read!("8.txt")
+layers = File.read!("8.txt")
   |> String.codepoints
   |> Enum.map(&String.to_integer/1)
-
-# layer_count = div(length(source), layer_size)
-
-layers = Enum.chunk_every(source, layer_size)
+  |> Enum.chunk_every(layer_size)
 
 layers
   |> Enum.min_by(fn layer -> Layer.occurences(layer, 0) end) # fewest_0_layer
