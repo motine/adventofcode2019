@@ -41,6 +41,10 @@ defmodule AstroidMap do
       end
     end    
   end
+
+  def unoccluded_stars_from(star, stars) do
+    
+  end
 end
 
 ExUnit.start()
