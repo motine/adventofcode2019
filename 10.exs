@@ -92,4 +92,10 @@ stars
   |> Enum.map(fn star -> AstroidMap.visible_star_count(star, stars) end)
   |> Enum.max
   |> IO.inspect
+# => 276
 
+# my guess is that the second part of this task was posed in this way because we assume that the first part was done with angles.
+# I am very happy with the solution above (which does not require polar coordinates/angles).
+# I will possibly come back to this and either
+# - rewrite the first part to use angles (then the second part becomes simple) or
+# - sort and group the stars by the angle, sort each group by the distance, then go through each group and eliminate the first one
