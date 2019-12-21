@@ -28,11 +28,20 @@ defmodule CoordinateOperators do
   def a <~> b when is_integer(a) and is_integer(b), do: 0
 end
 
+defmodule Math do
+  # adapted from: https://rosettacode.org/wiki/Least_common_multiple#Elixir
+  # explanation for approach: https://en.wikipedia.org/wiki/Least_common_multiple#Using_the_greatest_common_divisor
+  def gcd(a,0), do: abs(a)
+  def gcd(a,b), do: gcd(b, rem(a,b))
+  def lcm(a,b), do: div(abs(a*b), gcd(a,b))
+  def lcm(a,b,c), do: lcm(a,b) |> lcm(c)  
+end
 
 defmodule Moon do
   defstruct [:position, velocity: [0, 0, 0]] # contains {x,y,z} integer tuples
 
   import CoordinateOperators
+  import Math
 
   def step(moons) when is_list(moons), do: Enum.map(moons, &(step(&1, moons)))
 
@@ -54,6 +63,25 @@ defmodule Moon do
   def energy(moons) when is_list(moons), do: moons |> Enum.map(&energy/1) |> Enum.sum
   def energy(%Moon{position: p, velocity: v}), do: (~~~ p) * (~~~ v)
 
+  def same_along_axis(a, b, axis), do: Enum.at(a.position, axis) == Enum.at(b.position, axis)
+
+  def repetition_duration(initial_moons) do
+    # we can always compare with the initial state because if 
+    # idea: The axes (x,y,z) are independent. So we find the period for each axis separately. Then we find the lowest common multiple (idea from comments at https://www.youtube.com/watch?v=9UcnA2x5s-U).
+    x_duration = repetition_duration(step(initial_moons), initial_moons, 0, 1)|> IO.inspect # enduring the duplication here for better readability
+    y_duration = repetition_duration(step(initial_moons), initial_moons, 1, 1)|> IO.inspect
+    z_duration = repetition_duration(step(initial_moons), initial_moons, 2, 1)|> IO.inspect
+    lcm(x_duration, y_duration, z_duration)
+  end
+
+  @doc "repeats until all the moons have the same values along the given axis. axis can be 0..2 where 0 is x, 1 is y and 2 is z axis"
+  def repetition_duration(moons, initial_moons, axis, counter) do
+    same = initial_moons
+      |> Enum.zip(moons)
+      |> Enum.all?(fn {inital, current} -> same_along_axis(inital, current, axis) end)
+    if same, do: counter, else: repetition_duration(step(moons), initial_moons, axis, counter + 1)
+  end
+
   def read do
     [
       %Moon{position: [ -3,  15, -11]},
@@ -64,8 +92,12 @@ defmodule Moon do
   end
 end
 
+moons = Moon.read
 
-Enum.reduce(1..1000, Moon.read, fn _, acc -> Moon.step(acc) end)
+Enum.reduce(1..1000, moons, fn _, acc -> Moon.step(acc) end)
   |> Moon.energy
   |> IO.inspect
 # => 12070
+
+Moon.repetition_duration(moons)
+  |> IO.inspect
