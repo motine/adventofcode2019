@@ -5,12 +5,12 @@ end
 defmodule Element do
   @moduledoc """
   An element tuple is of the form: {count, name}. Example: {77, "GTGRP"}
-  We represent the reaction list as a MapSet with the following form:
+  We represent the reaction list as a Map with the following form:
       %{
         output_name => { output_count, inputs },
         ...
       }
-  Where inputs is a list of element tuples
+  Where `inputs` is a list of element tuples.
   """
 
   import Math
@@ -38,20 +38,38 @@ defmodule Element do
     {String.to_integer(count), name}
   end
 
-  @doc "returns the number of ORE needed to generate the given element name in the given count"
-  def generate(reactions, wanted_count, wanted_name)
-  def generate(_, count, "ORE"), do: count
-  def generate(reactions, wanted_count, wanted_name) do
+  @doc """
+  `reactions` is the list of reactions as given by Element.parse/1.
+  `needed` is the list of element tuples, which are still required (we try to boil down this list by applying a reaction until we end up with only ORE).
+  `leftover` is the list of element tuples which can be used for subsequent reactions.
+  """
+  def react(reactions, needed, ore_count \\ 0, leftover \\ %{})
 
-    {reaction_count, reaction_inputs} = reactions[wanted_name]
-    
-    times_to_run_the_reaction = div_round_up(wanted_count, reaction_count)
-    
-    reaction_inputs
-      |> Enum.map(fn {rcount, rname} -> generate(reactions, times_to_run_the_reaction * rcount, rname) end)
-      |> Enum.sum
+  def react(reactions, [], ore_count, _), do: ore_count # we have successfully reduced all needed elements to OREs. We are done!
+
+  def react(reactions, [{count, "ORE"} | rest], ore_count, leftover), do: react(reactions, rest, ore_count+count, leftover) # we find an ORE tuple and move it over to the ore_count
+
+  def react(reactions, [{needed_count, needed_name} | rest], ore_count, leftover) do # we need to reduce an element from the list by applying a reaction
+    # find the reaction to perform in order to get the needed element
+    {reaction_count, reaction_inputs} = reactions[needed_name]
+    # calculate how many times we need the reaction while considering the leftover
+    leftover_of_wanted = Map.get(leftover, needed_name, 0)
+    needed_count_for_reaction = needed_count - leftover_of_wanted # how many elements do we need to produce
+    times_to_run_the_reaction = div_round_up(needed_count_for_reaction, reaction_count)
+    spare_of_needed_after_reaction = times_to_run_the_reaction * reaction_count - needed_count_for_reaction
+    # assemble the list of needed elements for the reaction
+    reaction_needs = Enum.reduce(reaction_inputs, [], fn {rcount, rname}, acc -> [{times_to_run_the_reaction * rcount, rname} | acc] end)
+
+    react(reactions, reaction_needs ++ rest, ore_count, Map.put(leftover, needed_name, spare_of_needed_after_reaction))
   end
 end
+
+File.read!("14.txt")
+  |> Element.parse
+  |> Element.react([{1, "FUEL"}])
+  |> IO.inspect
+# => 346961
+
 
 # Tests
 #
@@ -100,18 +118,12 @@ end
 #   165 ORE => 2 GPVTF
 #   3 DCFZ, 7 NZVS, 5 HKGWZ, 10 PSHF => 8 KHKGT
 # 13312 
-"""
-10 ORE => 10 A
-1 ORE => 1 B
-7 A, 1 B => 1 C
-7 A, 1 C => 1 D
-7 A, 1 D => 1 E
-7 A, 1 E => 1 FUEL
-""" |> String.trim |> Element.parse |> Element.generate(1, "FUEL") |> IO.inspect
-# """ |> String.trim |> Element.parse |> Element.generate(1, "FUEL") |> IO.inspect
 
-File.read!("14.txt")
-  |> Element.parse
-  |> Element.generate(1, "FUEL")
-  |> IO.inspect
-# => not 37617913
+# """
+# 10 ORE => 10 A
+# 1 ORE => 1 B
+# 7 A, 1 B => 1 C
+# 7 A, 1 C => 1 D
+# 7 A, 1 D => 1 E
+# 7 A, 1 E => 1 FUEL
+# """ |> String.trim |> Element.parse |> Element.react([{1, "FUEL"}]) |> IO.inspect
