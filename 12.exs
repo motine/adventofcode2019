@@ -63,14 +63,16 @@ defmodule Moon do
   def energy(moons) when is_list(moons), do: moons |> Enum.map(&energy/1) |> Enum.sum
   def energy(%Moon{position: p, velocity: v}), do: (~~~ p) * (~~~ v)
 
-  def same_along_axis(a, b, axis), do: Enum.at(a.position, axis) == Enum.at(b.position, axis)
+
+  @doc "checks if the two given moons have the same position along the given axis."
+  def same_along_axis?(a, b, axis), do: Enum.at(a.position, axis) == Enum.at(b.position, axis)
 
   def repetition_duration(initial_moons) do
-    # we can always compare with the initial state because if 
+    # we can always compare with the initial state.
     # idea: The axes (x,y,z) are independent. So we find the period for each axis separately. Then we find the lowest common multiple (idea from comments at https://www.youtube.com/watch?v=9UcnA2x5s-U).
-    x_duration = repetition_duration(step(initial_moons), initial_moons, 0, 1)|> IO.inspect # enduring the duplication here for better readability
-    y_duration = repetition_duration(step(initial_moons), initial_moons, 1, 1)|> IO.inspect
-    z_duration = repetition_duration(step(initial_moons), initial_moons, 2, 1)|> IO.inspect
+    x_duration = repetition_duration(step(initial_moons), initial_moons, 0, 2) # enduring the code duplication here for better readability
+    y_duration = repetition_duration(step(initial_moons), initial_moons, 1, 2)
+    z_duration = repetition_duration(step(initial_moons), initial_moons, 2, 2)
     lcm(x_duration, y_duration, z_duration)
   end
 
@@ -78,7 +80,7 @@ defmodule Moon do
   def repetition_duration(moons, initial_moons, axis, counter) do
     same = initial_moons
       |> Enum.zip(moons)
-      |> Enum.all?(fn {inital, current} -> same_along_axis(inital, current, axis) end)
+      |> Enum.all?(fn {inital, current} -> same_along_axis?(inital, current, axis) end)
     if same, do: counter, else: repetition_duration(step(moons), initial_moons, axis, counter + 1)
   end
 
@@ -101,3 +103,4 @@ Enum.reduce(1..1000, moons, fn _, acc -> Moon.step(acc) end)
 
 Moon.repetition_duration(moons)
   |> IO.inspect
+# => 500903629351944
