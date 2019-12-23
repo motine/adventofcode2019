@@ -2,6 +2,28 @@ defmodule Math do
   def div_round_up(dividend, divisor), do: if rem(dividend, divisor) > 0, do: div(dividend, divisor) + 1, else: div(dividend, divisor)
 end
 
+defmodule MonotoneFunction do
+  @doc """
+  Find the given `target_output` by testing input values to function between `lower_input_bound` and `upper_input_bound`.
+  Mind that the given function must be ascending monotonously.
+  """
+  def find_input_for_output(function, target_output, lower_input_bound, upper_input_bound)
+  
+  def find_input_for_output(_, target_output, lower_input_bound, upper_input_bound) when lower_input_bound == upper_input_bound, do: lower_input_bound
+
+  def find_input_for_output(function, target_output, lower_input_bound, upper_input_bound) do
+    # We test the value in the middle between the lower and upper bound
+    # Depending on the result, we adjust the lower or upper bound respectively.
+    test_input = div(lower_input_bound + upper_input_bound, 2)
+    result = function.(test_input)
+    if (result < target_output) do
+      find_input_for_output(function, target_output, test_input+1, upper_input_bound)
+    else
+      find_input_for_output(function, target_output, lower_input_bound, test_input)
+    end
+  end
+end
+
 defmodule Element do
   @moduledoc """
   An element tuple is of the form: {count, name}. Example: {77, "GTGRP"}
@@ -45,7 +67,7 @@ defmodule Element do
   """
   def react(reactions, needed, ore_count \\ 0, leftover \\ %{})
 
-  def react(reactions, [], ore_count, _), do: ore_count # we have successfully reduced all needed elements to OREs. We are done!
+  def react(_, [], ore_count, _), do: ore_count # we have successfully reduced all needed elements to OREs. We are done!
 
   def react(reactions, [{count, "ORE"} | rest], ore_count, leftover), do: react(reactions, rest, ore_count+count, leftover) # we find an ORE tuple and move it over to the ore_count
 
@@ -64,11 +86,27 @@ defmodule Element do
   end
 end
 
-File.read!("14.txt")
+reactions = File.read!("14.txt")
   |> Element.parse
+
+reactions
   |> Element.react([{1, "FUEL"}])
   |> IO.inspect
 # => 346961
+
+ores_available = 1000000000000
+# let's just brute force it :)
+# max_iter = 999999999999
+# Enum.reduce_while(1..max_iter, nil, fn i, _ ->
+#     ores = Element.react(reactions, [{i, "FUEL"}])
+#     if ores < ores_available, do: {:cont, nil}, else: {:halt, i - 1}
+#   end)
+#   |> IO.inspect
+# => 4065790 (after 3689 sec, almost an hour)
+
+MonotoneFunction.find_input_for_output(fn input -> Element.react(reactions, [{input, "FUEL"}]) end, ores_available, 1, ores_available) - 1
+  |> IO.inspect
+# => 4065790 (after 2.7 sec)
 
 
 # Tests
